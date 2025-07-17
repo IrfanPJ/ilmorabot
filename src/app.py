@@ -1,39 +1,45 @@
 from ilmora import ChatBot
 import streamlit as st
 
-# Initialize chatbot
-@st.cache_resource
-def get_chatbot():
-    return ChatBot()
-
-bot = get_chatbot()
-
 st.title('ILMORA Assistant Bot')
 
-# Function for generating LLM response
-def generate_response(input):
-    return bot.ask(input)
+# --- Session State Initialization ---
+# This ensures each user gets their own chatbot instance and message history.
+# The chatbot is created only once per session.
+if "bot" not in st.session_state:
+    try:
+        # Create a new chatbot instance for this specific session
+        st.session_state.bot = ChatBot()
+    except Exception as e:
+        # Handle potential errors during initialization (e.g., missing API keys)
+        st.error(f"Failed to initialize the chatbot. Error: {e}")
+        st.stop()
 
-# Store LLM generated responses
-if "messages" not in st.session_state.keys():
-    st.session_state.messages = [{"role": "assistant", "content": "Hello! I'm ILMORA AI Assistant. How can I help you learn about ILMORA's AI solutions and services?"}]
+if "messages" not in st.session_state:
+    st.session_state.messages = [{
+        "role": "assistant", 
+        "content": "Hello! I'm the ILMORA AI Assistant. How can I help you learn about our AI solutions and services?"
+    }]
 
-# Display chat messages
+# --- Display Chat History ---
+# Display all the messages stored in the session state
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.write(message["content"])
 
-# User-provided prompt
-if input := st.chat_input():
-    st.session_state.messages.append({"role": "user", "content": input})
+# --- Handle New User Input ---
+if user_input := st.chat_input("Ask your question here..."):
+    # Append user's message to the history and display it
+    st.session_state.messages.append({"role": "user", "content": user_input})
     with st.chat_message("user"):
-        st.write(input)
+        st.write(user_input)
 
-# Generate a new response if last message is not from assistant
-if st.session_state.messages[-1]["role"] != "assistant":
+    # Generate and display the assistant's response
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
-            response = generate_response(input) 
-            st.write(response) 
-    message = {"role": "assistant", "content": response}
-    st.session_state.messages.append(message)
+            # Use the session-specific chatbot to get a response
+            response = st.session_state.bot.ask(user_input)
+            st.write(response)
+    
+    # Append the assistant's response to the history
+    st.session_state.messages.append({"role": "assistant", "content": response})
