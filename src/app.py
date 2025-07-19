@@ -1,4 +1,4 @@
-from ilmora import ChatBot
+from main import ChatBot
 import streamlit as st
 
 st.title('ILMORA Assistant Bot')
